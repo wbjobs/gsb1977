@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大计算分片 · 空闲调度 · 可中断 · 进度</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+  h1 { font-size: 18px; margin: 0 0 16px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  button { padding: 6px 14px; border: 0; border-radius: 6px; background: #2d6cdf; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.warn { background: #b0562a; }
+  label { font-size: 13px; color: #aaa; display: flex; gap: 4px; align-items: center; }
+  .progress { height: 14px; background: #333; border-radius: 7px; overflow: hidden; margin-bottom: 6px; }
+  #bar { height: 100%; width: 0; background: linear-gradient(90deg, #2d6cdf, #41c7af); transition: width .15s; }
+  .meta { display: flex; gap: 24px; font-size: 13px; color: #bbb; margin-bottom: 12px; flex-wrap: wrap; }
+  #status { color: #41c7af; }
+  canvas { display: block; border: 1px solid #333; border-radius: 6px; cursor: crosshair; max-width: 100%; }
+  #ball-track { width: 120px; height: 10px; background: #333; border-radius: 5px; overflow: hidden; }
+  #ball { width: 10px; height: 10px; background: #ffb020; border-radius: 50%; }
+  .hint { font-size: 12px; color: #777; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>大计算分片调度演示（requestIdleCallback + Web Worker + Canvas）</h1>
+  <div class="toolbar">
+    <button id="btn-start">开始计算</button>
+    <button id="btn-pause">暂停</button>
+    <button id="btn-cancel" class="warn">取消</button>
+    <button id="btn-jank" class="warn">模拟主线程繁忙</button>
+    <label><input type="checkbox" id="chk-fallback"> 强制降级(不用 Worker)</label>
+  </div>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="meta">
+    <span>状态: <b id="status">空闲</b></span>
+    <span>进度: <b id="pct">0%</b></span>
+    <span id="stats"></span>
+    <span>UI 帧率: <b id="fps">-- fps</b></span>
+    <span id="ball-track"><span id="ball"></span></span>
+  </div>
+  <canvas id="view"></canvas>
+  <p class="hint">点击画布任意位置可放大重算（计算进行中也可交互）。动画小球与 fps 用于验证 UI 不被阻塞。</p>
+  <script src="src/mandelbrot.js"></script>
+  <script src="src/scheduler.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
