@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>大计算分片 · 空闲调度 · 可中断渲染</title>
+<link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+<header>
+  <h1>大计算分片 / 空闲执行 / 可中断 / 进度</h1>
+  <p class="sub">requestIdleCallback 调度 + Web Worker 并行分片 + Canvas 渐进绘制（曼德博集合）</p>
+</header>
+
+<main>
+  <section class="panel controls">
+    <div class="row">
+      <label>画布
+        <select id="resolution">
+          <option value="640x400">640 × 400</option>
+          <option value="960x600" selected>960 × 600</option>
+          <option value="1280x800">1280 × 800</option>
+          <option value="1600x1000">1600 × 1000</option>
+        </select>
+      </label>
+      <label>每片
+        <select id="tileSize">
+          <option value="16">16 px</option>
+          <option value="32" selected>32 px</option>
+          <option value="64">64 px</option>
+        </select>
+      </label>
+      <label>迭代上限
+        <select id="maxIter">
+          <option value="200">200</option>
+          <option value="500" selected>500</option>
+          <option value="1000">1000</option>
+          <option value="2000">2000</option>
+        </select>
+      </label>
+      <label>Worker 数
+        <select id="workerCount">
+          <option value="0">0（自动）</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+          <option value="8">8</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="startBtn" class="primary">开始计算</button>
+      <button id="cancelBtn" disabled>中断</button>
+      <button id="retryBtn" disabled>重试失败片</button>
+      <button id="resetViewBtn">重置视图</button>
+      <label class="check"><input type="checkbox" id="forceMain" /> 强制主线程（禁用 Worker）</button></label>
+      <label class="check"><input type="checkbox" id="injectError" /> 注入瞬时异常（约 8% 分片失败）</label>
+      <label class="check"><input type="checkbox" id="jamWorker" /> 模拟 Worker 崩溃</label>
+    </div>
+  </section>
+
+  <section class="panel stage">
+    <canvas id="canvas" width="960" height="600"></canvas>
+    <div id="overlay" class="overlay hidden"></div>
+  </section>
+
+  <section class="panel metrics">
+    <div class="metric"><span class="k">状态</span><span id="mStatus" class="v">空闲</span></div>
+    <div class="metric"><span class="k">进度</span><span id="mProgress" class="v">0%</span></div>
+    <div class="metric"><span class="k">分片</span><span id="mTiles" class="v">0 / 0</span></div>
+    <div class="metric"><span class="k">像素</span><span id="mPixels" class="v">0 / 0</span></div>
+    <div class="metric"><span class="k">耗时</span><span id="mElapsed" class="v">0.0 s</span></div>
+    <div class="metric"><span class="k">吞吐</span><span id="mRate" class="v">0 px/s</span></div>
+    <div class="metric"><span class="k">执行模式</span><span id="mMode" class="v">—</span></div>
+    <div class="metric"><span class="k">主线程 FPS</span><span id="mFps" class="v">60</span></div>
+    <div class="metric"><span class="k">失败片</span><span id="mFailed" class="v">0</span></div>
+    <div class="metric"><span class="k">长任务</span><span id="mLongTasks" class="v">0</span></div>
+  </section>
+
+  <section class="panel log-panel">
+    <div class="log-head"><strong>事件日志</strong><button id="clearLog">清空</button></div>
+    <ul id="log"></ul>
+  </section>
+
+  <section class="panel notes">
+    <h2>验收对照</h2>
+    <ul>
+      <li><b>不阻塞 UI</b>：计算在 Worker 内进行；主线程仅在 requestIdleCallback 空闲时分发分片；不可用时自动降级为主线程分片，且每扫描行检查剩余帧预算。拖动滑块/点击按钮期间观察 FPS 与“长任务”计数。</li>
+      <li><b>可中断</b>：“中断”按钮协作式取消（分片级 + 扫描行级检查点），立即停止分发、丢弃迟到结果、保留已完成画面。</li>
+      <li><b>进度准确</b>：进度按像素加权（非分片计数），完成像素 / 总像素，取消/失败均精确反映。</li>
+      <li><b>性能可接受</b>：分片并行 + Transferable 零拷贝回传 + 分片大小可调，指标面板实时展示吞吐。</li>
+      <li><b>异常降级</b>：Worker 创建失败 / 启动超时 / 运行崩溃 → 自动切主线程；单片瞬时失败重试 2 次后标记红色，可用“重试失败片”补齐。</li>
+    </ul>
+    <p class="tip">提示：点击画布放大（以点击点为中心 ×2），Shift+点击缩小。</p>
+  </section>
+</main>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
